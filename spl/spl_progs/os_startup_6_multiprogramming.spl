@@ -1,0 +1,64 @@
+load(7,1);//exception handler
+load(8,2);
+
+load(23,17);//interrupt 7 routine
+load(24,18);
+
+load(9,3);//timer interrupt routine
+load(10,4);
+
+[READY_LIST + 0] = 0;//pid of the init process
+
+load(25,21);//loading disk blocks of init process to memory 
+load(26,22);
+load(27,23);
+
+PTBR = 1024;//setting the page table of the init process
+PTLR = 4;
+
+[PTBR+0] = 25;
+[PTBR+1] = "01";
+[PTBR+2] = 26;
+[PTBR+3] = "01";
+[PTBR+4] = 27;
+[PTBR+5] = "01";
+[PTBR+6] = 28;
+[PTBR+7] = "01";
+
+[READY_LIST + 1] = 2;//setting the state of the init to 2(running)
+
+SP = 3*512;//setting the stack pointer
+
+[28*512] = 0;//storing the starting logical address of the init on to top of the stack so that IP can be indirectly changed
+
+load(11,5);//interrupt 1 routine
+load(12,6);
+
+[READY_LIST + 32] = 1;//pid of the second process
+
+load(29,25);//loading disk block of first program into page in memory(after the init process)
+
+alias PTBR_Process1 S0;//giving name to kernel reg S0
+PTBR_Process1 = 1024 + (1*8);//setting up PTBR of the second process
+
+//setting up the page table of second process
+
+[PTBR_Process1 + 0] = 29;//setting up the pagetable of the second process
+[PTBR_Process1 + 1] = "01";
+[PTBR_Process1 + 2] = -1;
+[PTBR_Process1 + 3] = "00";
+[PTBR_Process1 + 4] = -1; 
+[PTBR_Process1 + 5] = "00";
+[PTBR_Process1 + 6] = 30;
+[PTBR_Process1 + 7]  = "01";
+
+//setting up the PCB of the second process
+
+[READY_LIST + 33] = 1;//set the state of the second process to ready
+[READY_LIST + 34] = 512*3;//setting BP
+[READY_LIST + 35] = 512*3;//setting SP
+[READY_LIST + 36] = 0;//setting IP to the starting logical address of this process
+[READY_LIST + 37] = PTBR_Process1;
+[READY_LIST + 38] = 4;
+
+ireturn;

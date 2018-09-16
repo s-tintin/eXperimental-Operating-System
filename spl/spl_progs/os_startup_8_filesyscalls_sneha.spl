@@ -1,0 +1,62 @@
+load(7,1);//loading exception handler
+load(8,2);
+
+load(23,17);//loading interrupt 7 routine
+load(24,18);
+
+[READY_LIST + 0] = 0;//setting pid of the init process
+
+load(25,21);//loading blocks of init process
+load(26,22);
+load(27,23);
+
+PTBR = 1024;
+PTLR = 4;
+
+[PTBR+0] = 25;//setting up the page table
+[PTBR+1] = "01";
+[PTBR+2] = 26;
+[PTBR+3] = "01";
+[PTBR+4] = 27;
+[PTBR+5] = "01";
+[PTBR+6] = 28;
+[PTBR+7] = "01";
+
+[READY_LIST + 1] = 2;//setting the state to ready
+
+SP = 3*512;
+
+[28*512] = 0;//setting SP to the logical starting address of the process
+
+load(11,5);//loading interrupt 1 routine
+load(12,6);
+
+load(5,19);//loading FAT
+
+load(6,20);//loading Disk Free List
+
+alias index S0;//initialising the System Wide Open File Table
+index = 0;
+while(index < 128)do
+	[FILE_TABLE + index + 0] = -1;//setting up the invalid FAT index
+	[FILE_TABLE + index + 1] = 0;//setting up the file open count
+	index = index + 2;
+endwhile;
+
+index = 15;//setting up the per-process open file table of the INIT process
+while(index < 31)do
+	[READY_LIST + index +0] = -1;//invalid entry for pointer to system wide open file table position
+	[READY_LIST + index + 1] = -1;//invalid entry for LSEEK position
+	index = index + 2;
+endwhile;
+
+load(13,7);//loading interrupt 2 routine
+load(14,8);
+	
+load(15,9);//loading interrupt 3 routine
+load(16,10);
+
+load(17,11);//loading interrupt 4 routine
+load(18,12);
+
+ireturn;

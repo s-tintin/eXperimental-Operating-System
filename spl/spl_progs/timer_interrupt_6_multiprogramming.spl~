@@ -1,0 +1,77 @@
+alias CurrentPID S0;//to save the context of the current process in it's PCB
+CurrentPID = (PTBR - 1024) / 8;//to get the pid of the currently running process
+
+alias CurrentPCB S1;
+CurrentPCB = 1536 + (CurrentPID*32);//starting address of PCB of currently running process
+
+[CurrentPCB + 1] = 1;//setting the state of the current process to ready
+[CurrentPCB + 2] = BP;
+[CurrentPCB + 3] = SP - 1;
+
+alias PhysicalSP S2;//to set the IP in PCB get the physical address of SP
+PhysicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512);
+
+[CurrentPCB + 4] = [PhysicalSP];//to get the values at top of stack and store it as IP in PCB
+
+[CurrentPCB + 5] = PTBR;
+[CurrentPCB + 6] = PTLR;
+
+[CurrentPCB + 7] = R0;
+[CurrentPCB + 8] = R1;
+[CurrentPCB + 9] = R2;
+[CurrentPCB + 10] = R3;
+[CurrentPCB + 11] = R4;
+[CurrentPCB + 12] = R5;
+[CurrentPCB + 13] = R6;
+[CurrentPCB + 14] = R7;
+
+
+
+alias newPCB S4;//to search the next process from ready list using round-robin scheduling
+alias searchprocess S5;
+alias max S6;
+
+max = READY_LIST + 1024 - 32; //setting to pid of the last process
+
+searchprocess = CurrentPCB + 32; //initialising searchprocess
+
+while (searchprocess != CurrentPCB) do
+    if(searchprocess > max) then
+        searchprocess = READY_LIST;  //goes back to 1st process in ready list
+    endif;
+    if ([searchprocess + 1] == 1) then   //if state of the process is ready choose it
+        newPCB = searchprocess;
+        break;
+    else 
+        searchprocess = searchprocess + 32; //if not move to PCB of next process
+    endif;
+endwhile;
+
+if(searchprocess == CurrentPCB) then
+    [CurrentPCB + 1] = 2;
+    ireturn;
+endif;
+
+
+BP = [newPCB + 2];
+SP = [newPCB + 3];
+PTBR = [newPCB + 5];
+PTLR = [newPCB + 6];
+R0 = [newPCB + 7];
+R1 = [newPCB + 8];
+R2 = [newPCB + 9];
+R3 = [newPCB + 10];
+R4 = [newPCB + 11];
+R5 = [newPCB + 12];
+R6 = [newPCB + 13];
+R7 = [newPCB + 14];
+
+SP = SP + 1;//setting the IP value on top of the stack
+alias newphysicalSP S2;
+newphysicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512);
+[newphysicalSP] = [newPCB + 4];
+
+[newPCB + 1] = 2;//setting the state of new process
+
+ireturn;
+

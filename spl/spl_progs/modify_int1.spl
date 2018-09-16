@@ -1,0 +1,94 @@
+alias physicalSP S0;
+physicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512);
+
+alias sysCallNo S1;
+sysCallNo = [physicalSP - 1];//system call number found in second position of stack
+
+alias returnvalue S2;
+returnvalue = [physicalSP - 2];//returnvalue found in third position of stack
+
+alias filename S3;
+filename = [physicalSP - 3];//filename argument found in fourth position of stack
+
+alias searchfile S4;//seraching for a file withe same name exist or not
+alias maxfile S5;
+
+maxfile = FAT + 512 - 8;
+searchfile = FAT;
+
+while (searchfile <= maxfile && [searchfile] != -1) do
+	if ([searchfile] == filename) then
+		returnvalue = 0;
+		ireturn;
+		
+	else
+		searchfile = searchfile + 8;
+
+	endif;
+endwhile;
+
+
+alias searchblock S4;//searching for a free block in the disk free list
+alias maxblock S5;
+alias foundblock S6;
+
+maxblock = DISK_LIST + 447;
+searchblock = DISK_LIST + 24;
+
+while(searchblock <= maxblock) do
+	if ([searchblock] == 0) then
+		foundblock = searchblock;
+	else
+		searchblock = searchblock + 1;
+	endif;
+endwhile;
+
+if(searchblock > maxblock)then//returning failure
+	returnvalue = -1;
+	ireturn;
+endif;
+
+alias searchfile S4;//searching for a free entry in the file
+alias maxfile S5;
+
+searchfile = FAT;
+maxfile = FAT + 512 - 8;
+
+while(searchfile <= maxfile)do
+	if([searchfile + 2] == -1)then
+		[searchfile + 0] = filename;//setting up the FAT entry
+		[searchfile + 1] = 0;
+		[searchfile + 2] = foundblock;
+
+	else
+		searchfile = searchfile + 8;
+	endif;
+endwhile;
+
+if(searchfile > maxfile)then //returning failure
+	returnvalue = -1;
+	ireturn;
+endif;
+
+load(1,foundblock);//loading the basic block of file into scratchpad area
+
+alias searchblock S4;
+alias maxblock S5;
+
+searchblock = SCRATCHPAD;
+maxblock = PAGE_TABLE;
+
+while(searchblock < maxblock)do//setting all words of basic block as -1
+	[searchblock] = -1;
+	searchblock = searchblock + 1;
+endwhile;
+
+store(1,foundblock);//storing the modified block back to the disk
+
+[DISK_LIST + foundblock] = 1;//to indicate the basic block is used
+
+store(5,19);//storing the updated copy of FAT back to disk
+store(6,20);//storing the updated copy of Disk Free List back to disk
+
+returnvalue = 0;//indicating success
+ireturn;
